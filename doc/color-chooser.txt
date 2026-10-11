@@ -1,0 +1,138 @@
+*color-chooser.nvim*  A floating color picker for Neovim
+
+==============================================================================
+CONTENTS                                              *color-chooser-contents*
+
+    Usage ............................................. |color-chooser-usage|
+    Controls .......................................... |color-chooser-controls|
+    Color literals .................................... |color-chooser-formats|
+    Configuration ..................................... |color-chooser-setup|
+    Lua API ........................................... |color-chooser-api|
+
+==============================================================================
+USAGE                                                    *color-chooser-usage*
+
+Requires Neovim 0.10+, a true-color terminal and 'termguicolors'. With the
+default 'cmdheight' of 1, the terminal needs at least 48 columns and 24 lines.
+No external dependencies are required.
+
+                                                         *:ColorChooser*
+:ColorChooser [color]
+    Open a floating picker based on the color literal under the cursor.
+    An optional color literal sets the initial color. If a literal is under
+    the cursor, its output format is preserved even with an explicit initial
+    color. Without a source literal, apply inserts at the cursor position.
+
+    Use the saturation/value plane, hue bar, RGB, saturation, value, and alpha
+    bars to adjust the color. Original and current swatches show alpha over
+    checkerboard backgrounds. Changes only reach the source buffer on apply.
+
+    Calling the command while a picker is open focuses that picker.
+
+    The source range is tracked through edits with an extmark. If the source
+    literal changes while the picker is open, apply warns and leaves the
+    buffer unchanged. Cancel and reopen to pick the edited source color.
+    Apply also refuses unavailable, non-modifiable and read-only buffers.
+
+Examples: >
+    :ColorChooser
+    :ColorChooser #80aaff
+    :ColorChooser rgb(255 128 0 / .5)
+<
+==============================================================================
+CONTROLS                                              *color-chooser-controls*
+
+    <Tab>, j           Select the next control.
+    <S-Tab>, k         Select the previous control.
+    h, <Left>, -       Decrease the selected value by one unit.
+    l, <Right>, +      Increase the selected value by one unit.
+    H, L               Decrease/increase by ten units.
+    <Up>, K            On the SV plane, increase value; otherwise select the
+                       previous control.
+    <Down>, J          On the SV plane, decrease value; otherwise select the
+                       next control.
+    e                  Enter a literal using |vim.ui.input()|. The output
+                       format stays the same; use f to change it.
+    f                  Cycle output: HEX -> RGB -> HSL -> HEX.
+    r                  Restore the original color and output format.
+    y                  Copy the output literal to the unnamed register.
+    <CR>               Apply and close.
+    <Esc>, q           Cancel and close.
+    Left click/drag    Select a color from the plane or a value on a bar.
+
+Hue units are degrees; RGB units are 1/255; saturation, value and alpha units
+are 1%. Hue wraps around, and other values stop at their limits. On the SV
+plane, horizontal adjustment changes saturation and vertical adjustment
+changes value. Set 'mouse' to enable mouse interaction, e.g. >
+    vim.opt.mouse = "a"
+<
+==============================================================================
+COLOR LITERALS                                         *color-chooser-formats*
+
+The cursor must be anywhere inside a recognized single-line literal:
+
+    #RGB, #RGBA, #RRGGBB, #RRGGBBAA
+    0xRRGGBB, 0xRRGGBBAA (also 0X)
+    rgb(), rgba(), hsl(), hsla()
+
+CSS functions accept comma-separated or space-separated channels, percentage
+RGB channels, numeric or percentage alpha, and slash alpha in space syntax.
+Hue accepts degrees (unitless or deg), grad, rad and turn. Channels outside
+their ranges are clamped. Named colors, variables and multiline functions
+are not recognized.
+
+Output preserves HEX case and prefix, short HEX when representable, explicit
+alpha, RGB percentages, and comma/space syntax. Short HEX expands when needed.
+Changing alpha below 100% adds alpha to output. Whitespace and number precision
+are normalized. RGB output uses integer channels or two decimal percentages;
+HSL uses two decimal places; functional alpha uses three decimal places.
+
+The f key selects canonical lowercase HEX or space-separated RGB/HSL output.
+
+==============================================================================
+CONFIGURATION                                            *color-chooser-setup*
+
+Setup is optional. Defaults: >
+    require("color-chooser").setup({
+      default_color = "#ff8800",
+      border = "rounded",
+      width = 64,
+      height = 30,
+    })
+<
+    default_color    Starting literal when no color is under the cursor.
+    border           Border accepted by |nvim_open_win()|.
+    width            Preferred inner width, at least 44.
+    height           Preferred inner height, at least 19.
+
+The picker shrinks to fit the editor and follows resize events. Below 28 inner
+lines it uses a compact layout. Resizing below its minimum size cancels the
+session. Very small terminals cannot open it.
+
+With lazy.nvim: >
+    {
+      "aikawa9376/color-chooser.nvim",
+      cmd = "ColorChooser",
+      keys = {
+        { "<leader>cc", "<cmd>ColorChooser<cr>", desc = "Choose color" },
+      },
+      opts = {},
+    }
+<
+==============================================================================
+LUA API                                                    *color-chooser-api*
+
+require("color-chooser").setup({options})
+    Merge options into the configuration. Invalid default colors and sizes
+    raise an error.
+
+require("color-chooser").open([initial])
+    Open the picker from the current window's cursor. The optional initial
+    argument is a recognized color literal. An invalid initial color warns
+    without opening a picker. For example: >
+        vim.keymap.set("n", "<leader>cc", function()
+          require("color-chooser").open()
+        end, { desc = "Choose color" })
+<
+==============================================================================
+vim:tw=78:ts=8:noet:ft=help:norl:

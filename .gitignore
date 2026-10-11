@@ -1,0 +1,15 @@
+# Editor and OS files
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Local environment
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Generated Neovim help tags
+/doc/tags
